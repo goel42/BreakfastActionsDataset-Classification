@@ -38,11 +38,11 @@ text_path_test = os.path.join(text_path, "test")
 
 
 print("Starting to load training data")
-train_dataset = BF.BreakfastNaiveFS(visual_feat_path_train, text_path_train, map_path, rm_SIL=True)
+train_dataset = BF.BreakfastNaiveFS(visual_feat_path_train, text_path_train, map_path, rm_SIL=False)
 # train_dataset = BF.BreakfastNaive(visual_feat_path_train, text_path_train, map_path)
 
 print("Training set loaded")
-test_dataset = BF.BreakfastNaiveFS(visual_feat_path_test, text_path_test, map_path, rm_SIL=True)
+test_dataset = BF.BreakfastNaiveFS(visual_feat_path_test, text_path_test, map_path, rm_SIL=False)
 # test_dataset = BF.BreakfastNaive(visual_feat_path_test, text_path_test, map_path)
 print("Test set loaded")
 
@@ -67,6 +67,8 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 # TRAIN
 total_step = len(train_loader)
 for epoch in range(num_epochs):
+    correct_predictions = 0
+    total_predictions = 0
     for i, data_batch in enumerate(train_loader):
         vis_feats = data_batch['vis_feats'].to(device)
         labels = data_batch['labels'].to(device)  # TODO dont send one of them to gpu and see what happens?
@@ -76,6 +78,9 @@ for epoch in range(num_epochs):
 
         # fwd pass
         outputs = model(vis_feats.float())
+        _, predicted = torch.max(outputs.data, 1)
+        total_predictions += labels.size(0)
+        correct_predictions += (predicted == labels).sum().item()
         # print("DEBUG outputs! ", outputs.size())
         loss = criterion(outputs, labels.long())
         # print("DEBUG loss! ", loss, loss.size())
@@ -89,6 +94,7 @@ for epoch in range(num_epochs):
         if (i + 1) % 10 == 0:
             print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
                   .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
+    print('Epoch [{}/{}], Accuracy: {:.4f}'.format(epoch + 1, num_epochs,100 * correct_predictions / total_predictions ))
 
 # TEST
 with torch.no_grad():
